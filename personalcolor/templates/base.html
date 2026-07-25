@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Personal Color Analysis{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Personal Color Analysis</h1>
+      <p class="subtitle">Upload a front-facing photo to find your seasonal color palette.</p>
+    </header>
+    {% block content %}{% endblock %}
+    <footer>
+      <p>Classifies skin-tone features (lightness, undertone, contrast) extracted with OpenCV into one of four
+      seasonal palettes using a KNN model. See the project README for methodology and limitations.</p>
+    </footer>
+  </main>
+</body>
+</html>

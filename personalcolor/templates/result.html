@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="result">
+    <h2>{{ result.season }}</h2>
+    <p class="tagline">{{ result.tagline }}</p>
+    <p class="confidence">Model confidence: {{ (result.confidence * 100) | round(1) }}%</p>
+
+    <h3>Recommended palette</h3>
+    <div class="swatches">
+      {% for hex in result.swatches %}
+        <span class="swatch" style="background-color: {{ hex }};" title="{{ hex }}"></span>
+      {% endfor %}
+    </div>
+
+    <h3>Season probabilities</h3>
+    <ul class="probabilities">
+      {% for season, prob in result.probabilities.items() %}
+        <li>{{ season }}: {{ (prob * 100) | round(1) }}%</li>
+      {% endfor %}
+    </ul>
+
+    <details>
+      <summary>Extracted color features</summary>
+      <ul class="features">
+        <li>Skin Lab (L, a, b): {{ result.features.skin_lab }}</li>
+        <li>Hair Lab (L, a, b): {{ result.features.hair_lab }}</li>
+        <li>Contrast (skin vs. hair lightness): {{ result.features.contrast }}</li>
+        <li>Chroma (skin saturation): {{ result.features.chroma }}</li>
+        <li>Warmth score (positive = warm, negative = cool): {{ result.features.warmth }}</li>
+      </ul>
+    </details>
+
+    <p><a href="{{ url_for('index') }}">&larr; Analyze another photo</a></p>
+  </section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "n_per_season": 300,
+  "k": 9,
+  "seed": 42,
+  "feature_order": [
+    "skin_L",
+    "skin_a",
+    "skin_b",
+    "contrast",
+    "chroma"
+  ]
+}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+  <form action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data" class="upload-form">
+    <label for="photo">Photo (PNG or JPEG, front-facing, good lighting)</label>
+    <input type="file" id="photo" name="photo" accept=".png,.jpg,.jpeg" required>
+    <button type="submit">Analyze</button>
+  </form>
+{% endblock %}
