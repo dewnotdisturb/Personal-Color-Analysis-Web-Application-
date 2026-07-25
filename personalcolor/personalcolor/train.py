@@ -61,21 +61,34 @@ _SEASON_PARAMS = {
 
 
 def _sample_season(season: str, n: int, rng: np.random.Generator) -> np.ndarray:
+    """Draw n noisy synthetic feature rows for one season.
+
+    theta (undertone hue) and chroma (saturation radius) are sampled
+    independently, then combined via polar-to-Cartesian conversion into
+    Lab a/b — that's what keeps "warm vs cool" (controlled by theta) and
+    "clear vs soft" (controlled by chroma) as separate, independently
+    tunable axes instead of tangled together.
+    """
     (theta_mu, theta_sd), (chroma_mu, chroma_sd), (l_mu, l_sd), (con_mu, con_sd) = _SEASON_PARAMS[season]
 
     theta = np.deg2rad(rng.normal(theta_mu, theta_sd, n))
-    chroma = np.clip(rng.normal(chroma_mu, chroma_sd, n), 2.0, None)
-    lightness = np.clip(rng.normal(l_mu, l_sd, n), 0.0, 255.0)
-    contrast = np.clip(rng.normal(con_mu, con_sd, n), 0.0, None)
+    chroma = np.clip(rng.normal(chroma_mu, chroma_sd, n), 2.0, None)  # can't have negative saturation
+    lightness = np.clip(rng.normal(l_mu, l_sd, n), 0.0, 255.0)  # stay inside Lab's 8-bit L range
+    contrast = np.clip(rng.normal(con_mu, con_sd, n), 0.0, None)  # contrast is a magnitude, can't be negative
 
+    # polar (theta, chroma) -> Cartesian (a, b), re-centered on Lab's 128 neutral point
     a = 128.0 + chroma * np.cos(theta)
     b = 128.0 + chroma * np.sin(theta)
 
+    # Column order must match ColorFeatures.to_vector() exactly, since
+    # that's the real feature vector the trained model will see at
+    # inference time.
     return np.stack([lightness, a, b, contrast, chroma], axis=1)
 
 
 def generate_synthetic_dataset(n_per_season: int = 300, seed: int = 42) -> tuple[np.ndarray, np.ndarray]:
-    rng = np.random.default_rng(seed)
+    """Build the full labeled dataset: n_per_season noisy samples for each of the 4 seasons."""
+    rng = np.random.default_rng(seed)  # seeded RNG shared across seasons -> reproducible dataset
     features, labels = [], []
     for season in _SEASON_PARAMS:
         features.append(_sample_season(season, n_per_season, rng))
@@ -84,15 +97,22 @@ def generate_synthetic_dataset(n_per_season: int = 300, seed: int = 42) -> tuple
 
 
 def train_and_save(n_per_season: int = 300, k: int = 9, seed: int = 42) -> str:
+    """Generate data, fit scaler + KNN, persist both to disk, and return the eval report text."""
     X, y = generate_synthetic_dataset(n_per_season, seed)
+    # stratify=y keeps the 4 seasons evenly represented in both splits
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=seed, stratify=y
     )
 
+    # KNN is distance-based, so features must be on comparable scales —
+    # without this, lightness (range ~0-255) would swamp contrast/chroma
+    # in the distance calculation.
     scaler = StandardScaler().fit(X_train)
     X_train_scaled = scaler.transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
+    # weights="distance": closer neighbors get more say in the vote than
+    # farther ones, instead of every one of the 9 neighbors counting equally.
     knn = KNeighborsClassifier(n_neighbors=k, weights="distance")
     knn.fit(X_train_scaled, y_train)
 
@@ -100,13 +120,15 @@ def train_and_save(n_per_season: int = 300, k: int = 9, seed: int = 42) -> str:
 
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(knn, MODEL_PATH)
-    joblib.dump(scaler, SCALER_PATH)
+    joblib.dump(scaler, SCALER_PATH)  # scaler must be saved too — inference needs the exact same transform
     REPORT_PATH.write_text(
         "Synthetic held-out set classification report "
         "(sanity check on decision-boundary separability, not real-world accuracy):\n\n"
         + report
     )
 
+    # Recorded mainly so anyone (including future-you) can tell exactly
+    # how a given model.joblib was produced without re-reading this file.
     metadata = {
         "n_per_season": n_per_season,
         "k": k,

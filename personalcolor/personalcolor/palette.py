@@ -56,6 +56,7 @@ PALETTES: dict[str, SeasonProfile] = {
 
 
 def get_palette(season: str) -> SeasonProfile:
+    """Look up a season's profile; raises ValueError (not KeyError) for an unknown name."""
     try:
         return PALETTES[season]
     except KeyError as exc:
