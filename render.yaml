@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: personal-color-analysis
+    runtime: python
+    rootDir: personalcolor
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /health

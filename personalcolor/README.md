@@ -102,6 +102,28 @@ python -m personalcolor.train
 python app.py    # http://127.0.0.1:5000
 ```
 
+## Deployment
+
+Deployed on [Render](https://render.com) using the `render.yaml` blueprint at
+the repo root (`rootDir: personalcolor` points Render at this subfolder).
+Gunicorn serves the app in production instead of Flask's dev server.
+
+To deploy your own copy:
+
+1. Push this repo to GitHub (already done if you're reading this on GitHub).
+2. In the Render dashboard: **New > Blueprint**, connect the repo, and Render
+   picks up `render.yaml` automatically — free plan, build command
+   `pip install -r requirements.txt`, start command
+   `gunicorn app:app --bind 0.0.0.0:$PORT`, health check on `/health`.
+3. First deploy takes a few minutes (installing OpenCV/scikit-learn). The KNN
+   model trains automatically on the first request if `model/*.joblib` isn't
+   present (it's gitignored — see `personalcolor/model.py:_ensure_trained`).
+4. Render's free tier spins down after inactivity, so the first request after
+   a period of idleness will be slow (cold start), not just an accuracy issue.
+
+No manual dashboard config needed beyond connecting the repo — `render.yaml`
+defines everything.
+
 ## Tests
 
 ```bash
